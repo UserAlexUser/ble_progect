@@ -436,6 +436,8 @@ static void advertising_init(void)
 
     // TODO: Add more data to the advertisement data
     // TODO: Add more data to the scan response data
+    init.srdata.uuids_complete.uuid_cnt = sizeof(m_adv_uuids) / sizeof(m_adv_uuids[0]);
+    init.srdata.uuids_complete.p_uuids  = m_adv_uuids;
 
     init.evt_handler = on_adv_evt;
 
