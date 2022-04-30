@@ -43,13 +43,15 @@
 #define ESTC_SERVICE_UUID 0x1AE1
 
 // TODO: 3. Pick a characteristic UUID and define it:
-#define ESTC_GATT_CHAR_1_UUID 0x4D5E
+#define ESTC_GATT_CHAR_NOTIFY_UUID      0x4D5E
+#define ESTC_GATT_CHAR_IDENTIFY_UUID    0x4D5C
 
 typedef struct
 {
     uint16_t service_handle;
     uint16_t connection_handle;
-    ble_gatts_char_handles_t    control_handles;
+    ble_gatts_char_handles_t    notify_handles;
+    ble_gatts_char_handles_t    identify_handles;
     // TODO: 6.3. Add handles for characterstic (type: ble_gatts_char_handles_t)
 } ble_estc_service_t;
 

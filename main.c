@@ -101,11 +101,19 @@
 
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
+#define APP_CFG_CHAR_LEN                2
+
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                             /**< Advertising module instance. */
 
+APP_TIMER_DEF(m_notify_timer_id);                                                    /**< Notification timer. */
+APP_TIMER_DEF(m_indicate_timer_id);                                                  /**< Indication timer. */
+
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
+
+static uint8_t                  m_char_value_notifycation[APP_CFG_CHAR_LEN];
+static uint8_t                  m_char_value_indication[APP_CFG_CHAR_LEN];
 
 static ble_uuid_t m_adv_uuids[] =                                               /**< Universally unique service identifiers. */
 {
@@ -135,6 +143,74 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
+static void send_notify(void * p_context)
+{
+    ret_code_t err_code;
+    uint16_t len = APP_CFG_CHAR_LEN;
+
+    if(m_char_value_notifycation[0] == 0)
+        m_char_value_notifycation[0] = 0xff;
+    else
+        m_char_value_notifycation[0] = 0;
+
+    if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        ble_gatts_hvx_params_t hvx_params;
+
+        memset(&hvx_params, 0, sizeof(hvx_params));
+        len = sizeof(uint8_t);
+
+        hvx_params.handle = m_estc_service.notify_handles.value_handle;
+        hvx_params.type   = BLE_GATT_HVX_NOTIFICATION;
+        hvx_params.offset = 0;
+        hvx_params.p_len  = &len;
+        hvx_params.p_data = m_char_value_notifycation;
+
+        err_code = sd_ble_gatts_hvx(m_conn_handle, &hvx_params);
+        if ((err_code != NRF_SUCCESS) &&
+            (err_code != NRF_ERROR_INVALID_STATE) &&
+            (err_code != NRF_ERROR_RESOURCES) &&
+            (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+        )
+        {
+            APP_ERROR_HANDLER(err_code);
+        }
+    }
+}
+static void send_indicate(void * p_context)
+{
+    ret_code_t err_code;
+    uint16_t len = APP_CFG_CHAR_LEN;
+
+    if(m_char_value_indication[0] == 0)
+        m_char_value_indication[0] = 0xff;
+    else
+        m_char_value_indication[0] = 0;
+
+    if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
+    {
+        ble_gatts_hvx_params_t hvx_params;
+
+        memset(&hvx_params, 0, sizeof(hvx_params));
+        len = sizeof(uint8_t);
+
+        hvx_params.handle = m_estc_service.identify_handles.value_handle;
+        hvx_params.type   = BLE_GATT_HVX_INDICATION;
+        hvx_params.offset = 0;
+        hvx_params.p_len  = &len;
+        hvx_params.p_data = m_char_value_indication;
+
+        err_code = sd_ble_gatts_hvx(m_conn_handle, &hvx_params);
+        if ((err_code != NRF_SUCCESS) &&
+            (err_code != NRF_ERROR_INVALID_STATE) &&
+            (err_code != NRF_ERROR_RESOURCES) &&
+            (err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+        )
+        {
+            APP_ERROR_HANDLER(err_code);
+        }
+    }
+}
 /**@brief Function for the Timer initialization.
  *
  * @details Initializes the timer module. This creates and starts application timers.
@@ -143,6 +219,14 @@ static void timers_init(void)
 {
     // Initialize timer module.
     ret_code_t err_code = app_timer_init();
+    APP_ERROR_CHECK(err_code);
+
+    // Create characteristic notification timer
+    err_code = app_timer_create(&m_notify_timer_id, APP_TIMER_MODE_REPEATED, send_notify);
+    APP_ERROR_CHECK(err_code);
+
+    // Create characteristic indication timer
+    err_code = app_timer_create(&m_indicate_timer_id, APP_TIMER_MODE_REPEATED, send_indicate);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -345,6 +429,10 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
         case BLE_GAP_EVT_DISCONNECTED:
             NRF_LOG_INFO("Disconnected (conn_handle: %d)", p_ble_evt->evt.gap_evt.conn_handle);
             // LED indication will be changed when advertising starts.
+            err_code = app_timer_stop(m_notify_timer_id);
+            APP_ERROR_CHECK(err_code);
+            err_code = app_timer_stop(m_indicate_timer_id);
+            APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_GAP_EVT_CONNECTED:
@@ -355,6 +443,14 @@ static void ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             err_code = nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
+            APP_ERROR_CHECK(err_code);
+
+            // Start characteristic notification timer
+            err_code = app_timer_start(m_notify_timer_id, APP_TIMER_TICKS(1000), NULL);
+            APP_ERROR_CHECK(err_code);
+
+            // Start characteristic indication timer
+            err_code = app_timer_start(m_indicate_timer_id, APP_TIMER_TICKS(2000), NULL);
             APP_ERROR_CHECK(err_code);
             break;
 
