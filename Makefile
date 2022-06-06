@@ -3,8 +3,8 @@ TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 DFU_PORT         ?= /dev/ttyACM0
 
-SDK_ROOT := ../devel/ESTC-NSDK
-PROJ_DIR := ../ble_progect_30.04.2022
+SDK_ROOT := ../../devel/ESTC-NSDK
+PROJ_DIR := ../ble_progect
 
 $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
   LINKER_SCRIPT  := estc_gatt_srv_gcc_nrf52.ld
@@ -108,6 +108,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
   $(PROJ_DIR)/ble_service.c \
   $(PROJ_DIR)/ble_control.c \
+  $(PROJ_DIR)/color_converter.c \
   $(PROJ_DIR)/pwm.c \
   $(PROJ_DIR)/log.c \
   $(PROJ_DIR)/flash.c \

@@ -28,8 +28,8 @@
  * SUCH DAMAGE
 */
 
-#ifndef ESTC_SERVICE_H__
-#define ESTC_SERVICE_H__
+#ifndef BLE_SERVICE_H_
+#define BLE_SERVICE_H_
 
 #include <stdint.h>
 
@@ -62,4 +62,4 @@ void estc_ble_service_on_ble_event(const ble_evt_t *ble_evt, void *ctx);
 void estc_update_characteristic_1_value(ble_estc_service_t *service, int32_t *value);
 
 void start_ble(void);
-#endif /* ESTC_SERVICE_H__ */
+#endif /* BLE_SERVICE_H_ */

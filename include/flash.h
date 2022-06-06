@@ -1,9 +1,9 @@
-#ifndef MEMORY_MODULE_H
-#define MEMORY_MODULE_H
+#ifndef FLASH_H
+#define FLASH_H
 
 #include <stdint.h>
 #include "nrf_fstorage.h"
-#include "pwm.h"
+#include "color_converter.h"
 
 #define FIRST_PAGE_FLASH    0xDE000U
 #define END_PAGE_FLASH      0xDEFFFU

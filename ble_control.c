@@ -28,6 +28,7 @@
 #include "log.h"
 #include "pwm.h"
 #include "flash.h"
+#include "color_converter.h"
 
 #define DEVICE_NAME                     "ESTC-RGB"                             /**< Name of device. Will be included in the advertising data. */
 #define MANUFACTURER_NAME               "NordicSemiconductor"                   /**< Manufacturer. Will be passed to Device Information Service. */
@@ -74,7 +75,7 @@ ble_estc_service_t m_estc_service; /**< ESTC example BLE service */
 static void advertising_start(void);
 
 static rgb_t rgb_color     = {0, 0, 0};
-//static rgb_t test_color     = {0, 0, 0};
+static hsv_t hsv_color     = {0, 0, 0};
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -95,6 +96,7 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 void init_flash_rgb()
 {   
     init_flash(&rgb_color);
+    rgb_to_hsv(&rgb_color, &hsv_color);
     rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
 }
 
@@ -126,9 +128,9 @@ static void send_indicate(void * p_context)
 {
     uint16_t len = APP_CFG_CHAR_LEN;
 
-    m_char_value_indication[0] = rgb_color.r;
-    m_char_value_indication[1] = rgb_color.g;
-    m_char_value_indication[2] = rgb_color.b;
+    m_char_value_indication[0] = hsv_color.h;
+    m_char_value_indication[1] = hsv_color.s;
+    m_char_value_indication[2] = hsv_color.v;
 
     if (m_conn_handle != BLE_CONN_HANDLE_INVALID)
     {
