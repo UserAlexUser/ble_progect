@@ -66,7 +66,7 @@ ret_code_t estc_ble_service_init(ble_estc_service_t *service)
     err_code = add_characteristics(service, ESTC_GATT_CHAR_NOTIFY_UUID, &service->notify_handles, 3,1,0,1,0);
     APP_ERROR_CHECK(err_code);
 
-    err_code = add_characteristics(service, ESTC_GATT_CHAR_LED_CONTROL_UUID, &service->identify_handles, 3,0,0,0,1);
+    err_code = add_characteristics(service, ESTC_GATT_CHAR_LED_CONTROL_UUID, &service->identify_handles, 3,1,0,0,1);
     APP_ERROR_CHECK(err_code);
 
     return 0;

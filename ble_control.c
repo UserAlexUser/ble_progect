@@ -96,8 +96,8 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 void init_flash_rgb()
 {   
     init_flash(&rgb_color);
-    rgb_to_hsv(&rgb_color, &hsv_color);
     rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
+    rgb2hsv(&rgb_color, &hsv_color);
 }
 
 static void send_notify(void * p_context)
@@ -351,14 +351,32 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
-static void recieve_notification_handler(uint8_t *data, uint16_t len)
+static void recieve_notification_handler_rgb(uint8_t *data, uint16_t len)
 {
     rgb_color.r = data[0];
     rgb_color.g = data[1];
     rgb_color.b = data[2];
-    rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
+    //rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
     write_to_flash(&rgb_color);
+    rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
 
+    rgb2hsv(&rgb_color, &hsv_color);
+    // NRF_LOG_INFO("2_HSV_h = %d", hsv_color.h);    
+    // NRF_LOG_INFO("2_HSV_s = %d", hsv_color.s);    
+    // NRF_LOG_INFO("2_HSV_v = %d", hsv_color.v);
+}
+
+static void recieve_notification_handler_hsv(uint8_t *data, uint16_t len)
+{
+    hsv_color.h = data[0];
+    hsv_color.s = data[1];
+    hsv_color.v = data[2];
+
+    hsv2rgb(&hsv_color, &rgb_color);
+    // NRF_LOG_INFO("2_RGB_r = %d", rgb_color.r);   
+    // NRF_LOG_INFO("2_RGB_g = %d", rgb_color.g);    
+    // NRF_LOG_INFO("2_RGB_b = %d", rgb_color.b);
+    write_to_flash(&rgb_color);
     rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
 }
 
@@ -385,14 +403,14 @@ static void write_handler(ble_evt_t const * p_ble_evt)
     else if ((p_evt_write->handle == m_estc_service.notify_handles.value_handle) && (p_evt_write->len == 3))
     {
         NRF_LOG_INFO("RGB_control");
-        recieve_notification_handler((uint8_t*)&p_evt_write->data, p_evt_write->len);
+        recieve_notification_handler_rgb((uint8_t*)&p_evt_write->data, p_evt_write->len);
     }
     if (p_evt_write->handle == m_estc_service.identify_handles.cccd_handle && (p_evt_write->len == 2))
     {   
         if (ble_srv_is_indication_enabled(p_evt_write->data) == true)
         {
             // Start characteristic indication timer
-            err_code = app_timer_start(m_indicate_timer_id, APP_TIMER_TICKS(5000), NULL);
+            err_code = app_timer_start(m_indicate_timer_id, APP_TIMER_TICKS(1000), NULL);
             APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Start characteristic indication timer");
         }
@@ -402,6 +420,11 @@ static void write_handler(ble_evt_t const * p_ble_evt)
             APP_ERROR_CHECK(err_code);
             NRF_LOG_INFO("Stop characteristic indication timer");
         }
+    }
+    else if ((p_evt_write->handle == m_estc_service.identify_handles.value_handle) && (p_evt_write->len == 3))
+    {
+        NRF_LOG_INFO("HSV_control");
+        recieve_notification_handler_hsv((uint8_t*)&p_evt_write->data, p_evt_write->len);
     }
 }
 
