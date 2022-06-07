@@ -43,11 +43,34 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(usb_cdc_acm,
                             APP_USBD_CDC_COMM_PROTOCOL_AT_V250);
 
 void cmd_rgb(void);
+void cmd_help(void);
 
 static cli_cmd_t cli_cmd[] =
 {
     {"rgb", cmd_rgb},
+    {"help", cmd_help},
 };
+
+static char *cmd_request_error[] =
+{
+    [0] = "\ncommand not executed",
+    [1] = "write help to see how to write a command",
+};
+
+void send_help_cmd(char const req[], size_t len)
+{   
+    ret_code_t ret = 0;
+
+    do
+    {
+        ret = app_usbd_cdc_acm_write(&usb_cdc_acm, req, len);
+    } while (ret == NRF_ERROR_BUSY);
+
+    do
+    {
+        ret = app_usbd_cdc_acm_write(&usb_cdc_acm, "\r\n", 3);
+    } while (ret == NRF_ERROR_BUSY);
+}
 
 void init_usb_cli(void)
 {
@@ -97,6 +120,9 @@ void cmd_rgb()
     if((r>255) || (g>255) || (b>255))
     {
         NRF_LOG_INFO("cmd_error");
+
+        for (size_t i = 0; i < 2; i++)
+            send_help_cmd(cmd_request_error[i], strlen(cmd_request_error[i]) + 1);
     }
     else
     {
@@ -107,6 +133,19 @@ void cmd_rgb()
         rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
         rgb2hsv(&rgb_color, &hsv_color);
     }
+}
+
+void cmd_help()
+{   
+    static char *cmd_request[] =
+    {
+        [0] = "\nSupport commands:",
+        [1] = "1. 'help' to see this list",
+        [2] = "2. 'rgb <r> <g> <b>' (0...255) example: 'rgb 255 255 255'",
+    };
+
+    for (size_t i = 0; i < 3; i++)
+        send_help_cmd(cmd_request[i], strlen(cmd_request[i]) + 1);
 }
 
 static void usb_ev_handler(app_usbd_class_inst_t const * p_inst,
@@ -167,6 +206,12 @@ static void usb_ev_handler(app_usbd_class_inst_t const * p_inst,
                 }
 
                 ret = app_usbd_cdc_acm_write(&usb_cdc_acm, old_cmd, old_count_cmd);
+                
+                count_cmd = old_count_cmd;
+                for(int i=0;i<CMD_SIZE;i++)
+                {
+                    cmd[i] = old_cmd[i];
+                }
             }
 
             else
