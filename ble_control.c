@@ -74,8 +74,8 @@ ble_estc_service_t m_estc_service; /**< ESTC example BLE service */
 
 static void advertising_start(void);
 
-static rgb_t rgb_color     = {0, 0, 0};
-static hsv_t hsv_color     = {0, 0, 0};
+rgb_t rgb_color = {0, 0, 0};
+hsv_t hsv_color = {0, 0, 0};
 
 /**@brief Callback function for asserts in the SoftDevice.
  *

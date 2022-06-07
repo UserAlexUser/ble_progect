@@ -112,6 +112,7 @@ SRC_FILES += \
   $(PROJ_DIR)/pwm.c \
   $(PROJ_DIR)/log.c \
   $(PROJ_DIR)/flash.c \
+  $(PROJ_DIR)/cli.c \
   $(PROJ_DIR)/main.c \
 
 # Include folders common to all targets
