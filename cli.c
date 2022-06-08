@@ -43,11 +43,15 @@ APP_USBD_CDC_ACM_GLOBAL_DEF(usb_cdc_acm,
                             APP_USBD_CDC_COMM_PROTOCOL_AT_V250);
 
 void cmd_rgb(void);
+void cmd_hsv(void);
+void cmd_save_color(void);
 void cmd_help(void);
 
 static cli_cmd_t cli_cmd[] =
 {
     {"rgb", cmd_rgb},
+    {"hsv", cmd_hsv},
+    {"save_current_color", cmd_save_color},
     {"help", cmd_help},
 };
 
@@ -129,12 +133,42 @@ void cmd_rgb()
         rgb_color.r = r;
         rgb_color.g = g;
         rgb_color.b = b;
-        write_to_flash(&rgb_color);
         rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
         rgb2hsv(&rgb_color, &hsv_color);
     }
 }
 
+void cmd_hsv()
+{
+    NRF_LOG_INFO("cmd_hsv");
+    char str[80];
+    int h;
+    int s;
+    int v;
+
+    sscanf(cmd, "%s%d%d%d", str, &h, &s, &v);
+
+    if((h>300) || (s>100) || (v>100))
+    {
+        NRF_LOG_INFO("cmd_error");
+
+        for (size_t i = 0; i < 2; i++)
+            send_help_cmd(cmd_request_error[i], strlen(cmd_request_error[i]) + 1);
+    }
+    else
+    {
+        hsv_color.h = (h/1.18);
+        hsv_color.s = (s*255);
+        hsv_color.v = (v*255);
+        hsv2rgb(&hsv_color, &rgb_color);
+        rgb_on(rgb_color.r, rgb_color.g, rgb_color.b);
+    }
+}
+
+void cmd_save_color()
+{
+    write_to_flash(&rgb_color);
+}
 void cmd_help()
 {   
     static char *cmd_request[] =
@@ -142,9 +176,11 @@ void cmd_help()
         [0] = "\nSupport commands:",
         [1] = "1. 'help' to see this list",
         [2] = "2. 'rgb <r> <g> <b>' (0...255) example: 'rgb 255 255 255'",
+        [3] = "3. 'hsv <h> <s> <v>'  example: 'hsv 300 100 100'",
+        [4] = "4. 'save_current_color : 'save_current_color'",
     };
 
-    for (size_t i = 0; i < 3; i++)
+    for (size_t i = 0; i < 5; i++)
         send_help_cmd(cmd_request[i], strlen(cmd_request[i]) + 1);
 }
 
